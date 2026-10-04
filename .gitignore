@@ -1,0 +1,21 @@
+# Dependencias instaladas (cada quien las genera con npm install)
+node_modules/
+cliente/node_modules/
+servidor/node_modules/
+
+# Variables de entorno: contienen la contraseña de Supabase,
+# NUNCA deben subirse a GitHub
+.env
+cliente/.env
+servidor/.env
+
+# Archivos generados al construir el proyecto para producción
+dist/
+cliente/dist/
+servidor/dist/
+
+# Archivos propios del sistema operativo o del editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
