@@ -1,1 +1,17 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
+
+/* Colores oficiales BUAP (Pantone 302 C y 306 C) como clases de Tailwind:
+   bg-buap-navy, text-buap-cyan, border-buap-cyan, etc. */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-buap-navy: #003b5c;
+  --color-buap-navy-dark: #002a40;
+  --color-buap-cyan: #00b5e2;
+  --color-buap-cyan-light: #e6f7fc;
+}
+
+body {
+  background: #f1f4f7;
+  color: #1f1f1f;
+}
