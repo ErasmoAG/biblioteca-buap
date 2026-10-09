@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.js";
+import materialesRoutes from "./routes/materiales.js";
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/materiales", materialesRoutes);
 
 const PUERTO = 3000;
 app.listen(PUERTO, () => {

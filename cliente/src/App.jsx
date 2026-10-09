@@ -3,6 +3,7 @@ import Login from "./pages/Login.jsx";
 import Layout from "./components/Layout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import EnConstruccion from "./pages/EnConstruccion.jsx";
+import CatalogoMateriales from "./pages/CatalogoMateriales.jsx";
 
 export default function App() {
   return (
@@ -14,12 +15,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route
             path="/catalogo"
-            element={
-              <EnConstruccion
-                titulo="Catálogo de materiales"
-                descripcion="Consulta, alta y edición de libros, CDs, DVDs y equipo."
-              />
-            }
+            element={<CatalogoMateriales />}
           />
           <Route
             path="/usuarios"
