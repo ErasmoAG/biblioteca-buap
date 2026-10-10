@@ -1,16 +1,20 @@
 // Consultas SQL del catálogo de materiales.
 import { pool } from "../db/pool.js";
 
-const COLUMNAS = `id, tipo, titulo, autor, categoria, ejemplares_totales,
-                  ejemplares_disponibles, solo_consulta`;
+const COLUMNAS = `id, tipo, titulo, autor, categoria, signatura, editorial, anio,
+                  isbn_issn, grado_academico, marca, modelo, numero_serie,
+                  dias_prestamo, ejemplares_totales, ejemplares_disponibles,
+                  solo_consulta`;
 
-export async function listarMateriales({ busqueda, tipo, categoria, limit, offset }) {
+export async function listarMateriales({ busqueda, tipo, categoria, disponibilidad, soloConsulta, limit, offset }) {
   const filtros = [];
   const valores = [];
 
   if (busqueda) {
     valores.push(`%${busqueda}%`);
-    filtros.push(`(titulo ILIKE $${valores.length} OR autor ILIKE $${valores.length})`);
+    filtros.push(`(titulo ILIKE $${valores.length} OR autor ILIKE $${valores.length}
+      OR signatura ILIKE $${valores.length} OR marca ILIKE $${valores.length}
+      OR modelo ILIKE $${valores.length} OR numero_serie ILIKE $${valores.length})`);
   }
   if (tipo) {
     valores.push(tipo);
@@ -19,6 +23,15 @@ export async function listarMateriales({ busqueda, tipo, categoria, limit, offse
   if (categoria) {
     valores.push(categoria);
     filtros.push(`categoria = $${valores.length}`);
+  }
+  if (disponibilidad === "disponibles") {
+    filtros.push("ejemplares_disponibles > 0");
+  } else if (disponibilidad === "agotados") {
+    filtros.push("ejemplares_disponibles = 0");
+  }
+  if (typeof soloConsulta === "boolean") {
+    valores.push(soloConsulta);
+    filtros.push(`solo_consulta = $${valores.length}`);
   }
 
   const where = filtros.length ? `WHERE ${filtros.join(" AND ")}` : "";
@@ -54,14 +67,25 @@ export async function buscarMaterialPorId(id) {
 export async function crearMaterial(material) {
   const result = await pool.query(
     `INSERT INTO materiales
-       (tipo, titulo, autor, categoria, ejemplares_totales, ejemplares_disponibles, solo_consulta)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+       (tipo, titulo, autor, categoria, signatura, editorial, anio, isbn_issn,
+        grado_academico, marca, modelo, numero_serie, dias_prestamo,
+        ejemplares_totales, ejemplares_disponibles, solo_consulta)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
      RETURNING ${COLUMNAS}`,
     [
       material.tipo,
       material.titulo,
       material.autor,
       material.categoria,
+      material.signatura,
+      material.editorial,
+      material.anio,
+      material.isbn_issn,
+      material.grado_academico,
+      material.marca,
+      material.modelo,
+      material.numero_serie,
+      material.dias_prestamo,
       material.ejemplares_totales,
       material.ejemplares_disponibles,
       material.solo_consulta,
@@ -74,14 +98,26 @@ export async function actualizarMaterial(id, material) {
   const result = await pool.query(
     `UPDATE materiales
         SET tipo = $1, titulo = $2, autor = $3, categoria = $4,
-            ejemplares_totales = $5, ejemplares_disponibles = $6, solo_consulta = $7
-      WHERE id = $8
+            signatura = $5, editorial = $6, anio = $7, isbn_issn = $8,
+            grado_academico = $9, marca = $10, modelo = $11, numero_serie = $12,
+            dias_prestamo = $13, ejemplares_totales = $14,
+            ejemplares_disponibles = $15, solo_consulta = $16
+      WHERE id = $17
       RETURNING ${COLUMNAS}`,
     [
       material.tipo,
       material.titulo,
       material.autor,
       material.categoria,
+      material.signatura,
+      material.editorial,
+      material.anio,
+      material.isbn_issn,
+      material.grado_academico,
+      material.marca,
+      material.modelo,
+      material.numero_serie,
+      material.dias_prestamo,
       material.ejemplares_totales,
       material.ejemplares_disponibles,
       material.solo_consulta,

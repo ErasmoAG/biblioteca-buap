@@ -14,19 +14,128 @@ import {
 } from "lucide-react";
 import { api } from "../api.js";
 
-const TIPOS = [
-  { valor: "libro", etiqueta: "Libros" },
-  { valor: "cd", etiqueta: "CD" },
-  { valor: "dvd", etiqueta: "DVD" },
-  { valor: "ipad", etiqueta: "iPads" },
-  { valor: "equipo_computo", etiqueta: "Equipo de Cómputo" },
-];
+// Una sola configuración controla las opciones, campos visibles y reglas de cada tipo.
+const CONFIG_TIPOS = {
+  libro: {
+    etiqueta: "Libros",
+    soloConsulta: "editable",
+    campos: [
+      { nombre: "titulo", etiqueta: "Título", obligatorio: true, max: 200 },
+      { nombre: "autor", etiqueta: "Autor", obligatorio: true, max: 150 },
+      { nombre: "categoria", etiqueta: "Categoría", obligatorio: true, max: 100 },
+      { nombre: "signatura", etiqueta: "Signatura", obligatorio: true, max: 60 },
+      { nombre: "ejemplares_totales", etiqueta: "Ejemplares totales", obligatorio: true, tipo: "number", min: 1 },
+      { nombre: "editorial", etiqueta: "Editorial", max: 120 },
+      { nombre: "anio", etiqueta: "Año", tipo: "number", min: 1400, max: 2100 },
+      { nombre: "isbn_issn", etiqueta: "ISBN / ISSN", max: 20 },
+    ],
+  },
+  tesis: {
+    etiqueta: "Tesis",
+    soloConsulta: "forzada",
+    campos: [
+      { nombre: "titulo", etiqueta: "Título", obligatorio: true, max: 200 },
+      { nombre: "autor", etiqueta: "Autor", obligatorio: true, max: 150 },
+      { nombre: "categoria", etiqueta: "Categoría", obligatorio: true, max: 100 },
+      { nombre: "signatura", etiqueta: "Signatura", obligatorio: true, max: 60 },
+      { nombre: "anio", etiqueta: "Año", obligatorio: true, tipo: "number", min: 1400, max: 2100 },
+      { nombre: "grado_academico", etiqueta: "Grado académico", obligatorio: true, tipo: "select", opciones: [{ valor: "licenciatura", etiqueta: "Licenciatura" }, { valor: "maestria", etiqueta: "Maestría" }, { valor: "doctorado", etiqueta: "Doctorado" }] },
+      { nombre: "ejemplares_totales", etiqueta: "Ejemplares totales", obligatorio: true, tipo: "number", min: 1 },
+    ],
+  },
+  revista: {
+    etiqueta: "Revistas",
+    soloConsulta: "forzada",
+    campos: [
+      { nombre: "titulo", etiqueta: "Título", obligatorio: true, max: 200 },
+      { nombre: "categoria", etiqueta: "Categoría", obligatorio: true, max: 100 },
+      { nombre: "ejemplares_totales", etiqueta: "Ejemplares totales", obligatorio: true, tipo: "number", min: 1 },
+      { nombre: "autor", etiqueta: "Autor", max: 150 },
+      { nombre: "signatura", etiqueta: "Signatura", max: 60 },
+      { nombre: "editorial", etiqueta: "Editorial", max: 120 },
+      { nombre: "anio", etiqueta: "Año", tipo: "number", min: 1400, max: 2100 },
+      { nombre: "isbn_issn", etiqueta: "ISBN / ISSN", max: 20 },
+    ],
+  },
+  material_especial: {
+    etiqueta: "Material Especial",
+    soloConsulta: "forzada",
+    campos: [
+      { nombre: "titulo", etiqueta: "Título", obligatorio: true, max: 200 },
+      { nombre: "ejemplares_totales", etiqueta: "Ejemplares totales", obligatorio: true, tipo: "number", min: 1 },
+      { nombre: "autor", etiqueta: "Autor", max: 150 },
+      { nombre: "categoria", etiqueta: "Categoría", max: 100 },
+      { nombre: "signatura", etiqueta: "Signatura", max: 60 },
+      { nombre: "anio", etiqueta: "Año", tipo: "number", min: 1400, max: 2100 },
+    ],
+  },
+  cd: {
+    etiqueta: "CD",
+    soloConsulta: "editable",
+    campos: [
+      { nombre: "titulo", etiqueta: "Título", obligatorio: true, max: 200 },
+      { nombre: "ejemplares_totales", etiqueta: "Ejemplares totales", obligatorio: true, tipo: "number", min: 1 },
+      { nombre: "autor", etiqueta: "Autor", max: 150 },
+      { nombre: "categoria", etiqueta: "Categoría", max: 100 },
+      { nombre: "signatura", etiqueta: "Signatura", max: 60 },
+      { nombre: "anio", etiqueta: "Año", tipo: "number", min: 1400, max: 2100 },
+    ],
+  },
+  dvd: {
+    etiqueta: "DVD",
+    soloConsulta: "editable",
+    campos: [
+      { nombre: "titulo", etiqueta: "Título", obligatorio: true, max: 200 },
+      { nombre: "ejemplares_totales", etiqueta: "Ejemplares totales", obligatorio: true, tipo: "number", min: 1 },
+      { nombre: "autor", etiqueta: "Autor", max: 150 },
+      { nombre: "categoria", etiqueta: "Categoría", max: 100 },
+      { nombre: "signatura", etiqueta: "Signatura", max: 60 },
+      { nombre: "anio", etiqueta: "Año", tipo: "number", min: 1400, max: 2100 },
+    ],
+  },
+  ipad: {
+    etiqueta: "iPads",
+    soloConsulta: "editable",
+    ejemplaresFijos: true,
+    campos: [
+      { nombre: "titulo", etiqueta: "Nombre del equipo", obligatorio: true, max: 200 },
+      { nombre: "marca", etiqueta: "Marca", obligatorio: true, max: 60 },
+      { nombre: "modelo", etiqueta: "Modelo", obligatorio: true, max: 60 },
+      { nombre: "numero_serie", etiqueta: "Número de serie", obligatorio: true, max: 80 },
+      { nombre: "categoria", etiqueta: "Tipo de equipo", max: 100 },
+      { nombre: "dias_prestamo", etiqueta: "Días de préstamo", tipo: "number", min: 1 },
+    ],
+  },
+  equipo_computo: {
+    etiqueta: "Equipo de Cómputo",
+    soloConsulta: "editable",
+    ejemplaresFijos: true,
+    campos: [
+      { nombre: "titulo", etiqueta: "Nombre del equipo", obligatorio: true, max: 200 },
+      { nombre: "marca", etiqueta: "Marca", obligatorio: true, max: 60 },
+      { nombre: "modelo", etiqueta: "Modelo", obligatorio: true, max: 60 },
+      { nombre: "numero_serie", etiqueta: "Número de serie", obligatorio: true, max: 80 },
+      { nombre: "categoria", etiqueta: "Tipo de equipo", max: 100 },
+      { nombre: "dias_prestamo", etiqueta: "Días de préstamo", tipo: "number", min: 1 },
+    ],
+  },
+};
+const TIPOS = Object.entries(CONFIG_TIPOS).map(([valor, config]) => ({ valor, etiqueta: config.etiqueta }));
 const TAMANO_PAGINA = 10;
 const FORM_VACIO = {
   tipo: "libro",
   titulo: "",
   autor: "",
   categoria: "",
+  signatura: "",
+  editorial: "",
+  anio: "",
+  isbn_issn: "",
+  grado_academico: "",
+  marca: "",
+  modelo: "",
+  numero_serie: "",
+  dias_prestamo: "",
   ejemplares_totales: "1",
   ejemplares_disponibles: "1",
   solo_consulta: false,
@@ -34,6 +143,15 @@ const FORM_VACIO = {
 
 function campoSelectClass() {
   return "mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-buap-cyan focus:ring-2 focus:ring-buap-cyan/20";
+}
+
+function detalleMaterial(material) {
+  if (material.tipo === "ipad" || material.tipo === "equipo_computo") {
+    return [material.marca, material.modelo].filter(Boolean).join(" ") || "Equipo";
+  }
+  return [material.autor, material.signatura ? `Signatura: ${material.signatura}` : null]
+    .filter(Boolean)
+    .join(" · ") || "Sin datos adicionales";
 }
 
 function Modal({ titulo, onCerrar, children, ancho = "max-w-xl" }) {
@@ -72,6 +190,8 @@ export default function CatalogoMateriales() {
   const [busquedaEstable, setBusquedaEstable] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("");
+  const [filtroDisponibilidad, setFiltroDisponibilidad] = useState("");
+  const [filtroSoloConsulta, setFiltroSoloConsulta] = useState("");
   const [pagina, setPagina] = useState(0);
   const [recarga, setRecarga] = useState(0);
   const [total, setTotal] = useState(0);
@@ -107,6 +227,8 @@ export default function CatalogoMateriales() {
     if (busquedaEstable) params.set("search", busquedaEstable);
     if (filtroTipo) params.set("tipo", filtroTipo);
     if (filtroCategoria) params.set("categoria", filtroCategoria);
+    if (filtroDisponibilidad) params.set("disponibilidad", filtroDisponibilidad);
+    if (filtroSoloConsulta) params.set("solo_consulta", filtroSoloConsulta);
 
     setCargando(true);
     setError("");
@@ -123,7 +245,7 @@ export default function CatalogoMateriales() {
         if (vigente) setCargando(false);
       });
     return () => { vigente = false; };
-  }, [busquedaEstable, filtroTipo, filtroCategoria, pagina, recarga]);
+  }, [busquedaEstable, filtroTipo, filtroCategoria, filtroDisponibilidad, filtroSoloConsulta, pagina, recarga]);
 
   useEffect(() => {
     if (!aviso) return undefined;
@@ -137,10 +259,41 @@ export default function CatalogoMateriales() {
     fin: Math.min((pagina + 1) * TAMANO_PAGINA, total),
   }), [pagina, total]);
 
+  function limpiarFiltros() {
+    setBusqueda("");
+    setBusquedaEstable("");
+    setFiltroTipo("");
+    setFiltroCategoria("");
+    setFiltroDisponibilidad("");
+    setFiltroSoloConsulta("");
+    setPagina(0);
+  }
+
   function abrirCrear() {
     setForm(FORM_VACIO);
     setErrorFormulario("");
     setModal({ tipo: "formulario", material: null });
+  }
+
+  function cambiarTipo(nuevoTipo) {
+    const nuevaConfig = CONFIG_TIPOS[nuevoTipo];
+    setForm((actual) => {
+      const configuracionAnterior = CONFIG_TIPOS[actual.tipo];
+      const camposAnteriores = new Set(configuracionAnterior.campos.map((campo) => campo.nombre));
+      const nuevoFormulario = { ...FORM_VACIO, tipo: nuevoTipo };
+      for (const campo of nuevaConfig.campos) {
+        if (camposAnteriores.has(campo.nombre)) {
+          nuevoFormulario[campo.nombre] = actual[campo.nombre];
+        }
+      }
+      if (nuevaConfig.ejemplaresFijos) {
+        nuevoFormulario.ejemplares_totales = "1";
+        nuevoFormulario.ejemplares_disponibles = "1";
+      }
+      nuevoFormulario.solo_consulta = nuevaConfig.soloConsulta === "forzada";
+      return nuevoFormulario;
+    });
+    setErrorFormulario("");
   }
 
   function abrirEditar(material) {
@@ -149,6 +302,15 @@ export default function CatalogoMateriales() {
       titulo: material.titulo,
       autor: material.autor || "",
       categoria: material.categoria || "",
+      signatura: material.signatura || "",
+      editorial: material.editorial || "",
+      anio: material.anio == null ? "" : String(material.anio),
+      isbn_issn: material.isbn_issn || "",
+      grado_academico: material.grado_academico || "",
+      marca: material.marca || "",
+      modelo: material.modelo || "",
+      numero_serie: material.numero_serie || "",
+      dias_prestamo: material.dias_prestamo == null ? "" : String(material.dias_prestamo),
       ejemplares_totales: String(material.ejemplares_totales),
       ejemplares_disponibles: String(material.ejemplares_disponibles),
       solo_consulta: material.solo_consulta,
@@ -160,14 +322,10 @@ export default function CatalogoMateriales() {
   async function guardar(event) {
     event.preventDefault();
     setErrorFormulario("");
-    const totalEjemplares = Number(form.ejemplares_totales);
-    const disponibles = Number(form.ejemplares_disponibles);
-    if (!Number.isInteger(totalEjemplares) || totalEjemplares < 0 || !Number.isInteger(disponibles) || disponibles < 0) {
-      setErrorFormulario("Los ejemplares deben ser números enteros iguales o mayores a cero.");
-      return;
-    }
-    if (disponibles > totalEjemplares) {
-      setErrorFormulario("Los ejemplares disponibles no pueden superar el total.");
+    const config = CONFIG_TIPOS[form.tipo];
+    const totalEjemplares = config.ejemplaresFijos ? 1 : Number(form.ejemplares_totales);
+    if (!Number.isInteger(totalEjemplares) || totalEjemplares < 1) {
+      setErrorFormulario("Los ejemplares totales deben ser un entero mayor que cero.");
       return;
     }
 
@@ -178,8 +336,18 @@ export default function CatalogoMateriales() {
         titulo: form.titulo.trim(),
         autor: form.autor.trim() || null,
         categoria: form.categoria.trim() || null,
+        signatura: form.signatura.trim() || null,
+        editorial: form.editorial.trim() || null,
+        isbn_issn: form.isbn_issn.trim() || null,
+        grado_academico: form.grado_academico || null,
+        marca: form.marca.trim() || null,
+        modelo: form.modelo.trim() || null,
+        numero_serie: form.numero_serie.trim() || null,
+        anio: form.anio === "" ? null : Number(form.anio),
+        dias_prestamo: form.dias_prestamo === "" ? null : Number(form.dias_prestamo),
         ejemplares_totales: totalEjemplares,
-        ejemplares_disponibles: disponibles,
+        ejemplares_disponibles: config.ejemplaresFijos ? 1 : totalEjemplares,
+        solo_consulta: config.soloConsulta === "forzada" || form.solo_consulta,
       };
       const editando = Boolean(modal.material);
       await api(editando ? `/materiales/${modal.material.id}` : "/materiales", {
@@ -236,12 +404,12 @@ export default function CatalogoMateriales() {
       )}
 
       <section className="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <div className="grid gap-3 md:grid-cols-[minmax(240px,1fr)_200px_200px]">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <label className="block">
             <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Buscar</span>
             <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-slate-200 px-3 focus-within:border-buap-cyan focus-within:ring-2 focus-within:ring-buap-cyan/20">
               <Search size={18} className="shrink-0 text-slate-400" />
-              <input value={busqueda} onChange={(event) => { setBusqueda(event.target.value); setPagina(0); }} placeholder="Título o autor" className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-slate-400" />
+              <input value={busqueda} onChange={(event) => { setBusqueda(event.target.value); setPagina(0); }} placeholder="Título, autor, signatura o equipo" className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-slate-400" />
               {busqueda && <button type="button" onClick={() => setBusqueda("")} aria-label="Limpiar búsqueda" className="text-slate-400 hover:text-slate-700"><X size={16} /></button>}
             </div>
           </label>
@@ -259,6 +427,29 @@ export default function CatalogoMateriales() {
               {categorias.map((categoria) => <option key={categoria} value={categoria}>{categoria}</option>)}
             </select>
           </label>
+          <label className="block">
+            <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Existencias</span>
+            <select value={filtroDisponibilidad} onChange={(event) => { setFiltroDisponibilidad(event.target.value); setPagina(0); }} className={campoSelectClass()}>
+              <option value="">Cualquier existencia</option>
+              <option value="disponibles">Con ejemplares disponibles</option>
+              <option value="agotados">Agotados</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Modalidad</span>
+            <select value={filtroSoloConsulta} onChange={(event) => { setFiltroSoloConsulta(event.target.value); setPagina(0); }} className={campoSelectClass()}>
+              <option value="">Préstamo o consulta</option>
+              <option value="false">Préstamo a domicilio</option>
+              <option value="true">Solo consulta en sala</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+          <span>Los filtros se combinan para acotar los resultados.</span>
+          {(busqueda || filtroTipo || filtroCategoria || filtroDisponibilidad || filtroSoloConsulta) && (
+            <button type="button" onClick={limpiarFiltros} className="font-semibold text-buap-navy underline underline-offset-2 hover:text-buap-cyan">Limpiar filtros</button>
+          )}
         </div>
 
         <div className="mt-5 overflow-x-auto rounded-lg border border-slate-200">
@@ -282,11 +473,11 @@ export default function CatalogoMateriales() {
                 <tr><td colSpan="6" className="px-4 py-14 text-center"><div className="mx-auto grid size-11 place-items-center rounded-full bg-slate-100 text-slate-500"><BookOpen size={21} /></div><p className="mt-3 font-semibold text-slate-700">No hay materiales para mostrar</p><p className="mt-1 text-sm text-slate-500">Prueba con otros filtros o agrega un material nuevo.</p></td></tr>
               ) : materiales.map((material) => (
                 <tr key={material.id} className="transition hover:bg-slate-50/70">
-                  <td className="px-4 py-3.5"><p className="font-semibold text-slate-800">{material.titulo}</p><p className="mt-0.5 text-xs text-slate-500">{material.autor || "Autor no especificado"}</p></td>
+                  <td className="px-4 py-3.5"><p className="font-semibold text-slate-800">{material.titulo}</p><p className="mt-0.5 text-xs text-slate-500">{detalleMaterial(material)}</p></td>
                   <td className="px-4 py-3.5"><span className="rounded-full bg-buap-cyan-light px-2.5 py-1 text-xs font-semibold text-buap-navy">{TIPOS.find((tipo) => tipo.valor === material.tipo)?.etiqueta || material.tipo}</span></td>
                   <td className="px-4 py-3.5 text-slate-600">{material.categoria || "—"}</td>
                   <td className="px-4 py-3.5 text-center"><span className="font-semibold text-slate-700">{material.ejemplares_disponibles}</span><span className="text-slate-400"> / {material.ejemplares_totales}</span></td>
-                  <td className="px-4 py-3.5">{material.solo_consulta ? <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">Solo consulta</span> : <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800">Préstamo permitido</span>}</td>
+                  <td className="px-4 py-3.5"><span className={material.solo_consulta ? "rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800" : "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800"}>{material.solo_consulta ? "Solo consulta" : "Préstamo permitido"}</span>{material.dias_prestamo != null && <p className="mt-1 text-xs text-slate-500">{material.dias_prestamo} días de préstamo</p>}</td>
                   <td className="px-4 py-3.5"><div className="flex justify-end gap-1"><button type="button" onClick={() => abrirEditar(material)} aria-label={`Editar ${material.titulo}`} className="rounded-lg p-2 text-slate-500 hover:bg-buap-cyan-light hover:text-buap-navy"><Pencil size={17} /></button><button type="button" onClick={() => setModal({ tipo: "eliminar", material })} aria-label={`Eliminar ${material.titulo}`} className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-red-700"><Trash2 size={17} /></button></div></td>
                 </tr>
               ))}
@@ -308,16 +499,59 @@ export default function CatalogoMateriales() {
         <Modal titulo={modal.material ? "Editar material" : "Agregar material"} onCerrar={() => !guardando && setModal(null)}>
           <form onSubmit={guardar} className="space-y-4 px-5 py-5 sm:px-6">
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block sm:col-span-2"><span className="text-sm font-semibold text-slate-700">Tipo de material <span className="text-red-600">*</span></span><select required value={form.tipo} onChange={(event) => setForm({ ...form, tipo: event.target.value })} className={campoSelectClass()}>{TIPOS.map((tipo) => <option key={tipo.valor} value={tipo.valor}>{tipo.etiqueta}</option>)}</select></label>
-              <label className="block sm:col-span-2"><span className="text-sm font-semibold text-slate-700">Título <span className="text-red-600">*</span></span><input required maxLength="200" value={form.titulo} onChange={(event) => setForm({ ...form, titulo: event.target.value })} className={campoSelectClass()} placeholder="Título del material" /></label>
-              <label className="block"><span className="text-sm font-semibold text-slate-700">Autor</span><input maxLength="150" value={form.autor} onChange={(event) => setForm({ ...form, autor: event.target.value })} className={campoSelectClass()} placeholder="Nombre del autor" /></label>
-              <label className="block"><span className="text-sm font-semibold text-slate-700">Categoría</span><input maxLength="100" list="lista-categorias" value={form.categoria} onChange={(event) => setForm({ ...form, categoria: event.target.value })} className={campoSelectClass()} placeholder="Ej. Literatura" /><datalist id="lista-categorias">{categorias.map((categoria) => <option key={categoria} value={categoria} />)}</datalist></label>
-              <label className="block"><span className="text-sm font-semibold text-slate-700">Ejemplares totales <span className="text-red-600">*</span></span><input required type="number" min="0" step="1" value={form.ejemplares_totales} onChange={(event) => setForm({ ...form, ejemplares_totales: event.target.value })} className={campoSelectClass()} /></label>
-              <label className="block"><span className="text-sm font-semibold text-slate-700">Disponibles <span className="text-red-600">*</span></span><input required type="number" min="0" step="1" max={form.ejemplares_totales} value={form.ejemplares_disponibles} onChange={(event) => setForm({ ...form, ejemplares_disponibles: event.target.value })} className={campoSelectClass()} /></label>
+              <label className="block sm:col-span-2">
+                <span className="text-sm font-semibold text-slate-700">Tipo de material <span className="text-red-600">*</span></span>
+                <select required value={form.tipo} onChange={(event) => cambiarTipo(event.target.value)} className={campoSelectClass()}>
+                  {TIPOS.map((tipo) => <option key={tipo.valor} value={tipo.valor}>{tipo.etiqueta}</option>)}
+                </select>
+              </label>
+              {CONFIG_TIPOS[form.tipo].campos.map((campo) => {
+                const anchoCompleto = ["titulo", "numero_serie"].includes(campo.nombre);
+                const className = `block ${anchoCompleto ? "sm:col-span-2" : ""}`;
+                return (
+                  <label key={campo.nombre} className={className}>
+                    <span className="text-sm font-semibold text-slate-700">
+                      {campo.etiqueta} {campo.obligatorio && <span className="text-red-600">*</span>}
+                    </span>
+                    {campo.tipo === "select" ? (
+                      <select
+                        required={campo.obligatorio}
+                        value={form[campo.nombre]}
+                        onChange={(event) => setForm({ ...form, [campo.nombre]: event.target.value })}
+                        className={campoSelectClass()}
+                      >
+                        <option value="">Selecciona un grado</option>
+                        {campo.opciones.map((opcion) => <option key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</option>)}
+                      </select>
+                    ) : (
+                      <input
+                        required={campo.obligatorio}
+                        type={campo.tipo || "text"}
+                        min={campo.min}
+                        max={campo.max}
+                        maxLength={campo.tipo === "number" ? undefined : campo.max}
+                        step={campo.tipo === "number" ? "1" : undefined}
+                        list={campo.nombre === "categoria" ? "lista-categorias" : undefined}
+                        value={form[campo.nombre]}
+                        onChange={(event) => setForm({ ...form, [campo.nombre]: event.target.value })}
+                        className={campoSelectClass()}
+                        placeholder={campo.nombre === "categoria" ? "Ej. Literatura" : undefined}
+                      />
+                    )}
+                    {campo.nombre === "categoria" && <datalist id="lista-categorias">{categorias.map((categoria) => <option key={categoria} value={categoria} />)}</datalist>}
+                  </label>
+                );
+              })}
+              {CONFIG_TIPOS[form.tipo].ejemplaresFijos && (
+                <div className="grid gap-4 sm:col-span-2 sm:grid-cols-2">
+                  <label className="block"><span className="text-sm font-semibold text-slate-700">Ejemplares totales</span><input disabled value="1" className={`${campoSelectClass()} cursor-not-allowed bg-slate-100 text-slate-500`} /></label>
+                  <label className="block"><span className="text-sm font-semibold text-slate-700">Disponibles</span><input disabled value="1" className={`${campoSelectClass()} cursor-not-allowed bg-slate-100 text-slate-500`} /></label>
+                </div>
+              )}
             </div>
             <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-3.5">
-              <input type="checkbox" checked={form.solo_consulta} onChange={(event) => setForm({ ...form, solo_consulta: event.target.checked })} className="mt-0.5 size-4 accent-[#003b5c]" />
-              <span><span className="block text-sm font-semibold text-slate-700">Solo consulta en sala</span><span className="mt-0.5 block text-xs text-slate-500">Marca esta opción para tesis, revistas, reserva o material especial que no puede salir.</span></span>
+              <input type="checkbox" checked={CONFIG_TIPOS[form.tipo].soloConsulta === "forzada" || form.solo_consulta} disabled={CONFIG_TIPOS[form.tipo].soloConsulta === "forzada"} onChange={(event) => setForm({ ...form, solo_consulta: event.target.checked })} className="mt-0.5 size-4 accent-[#003b5c] disabled:cursor-not-allowed" />
+              <span><span className="block text-sm font-semibold text-slate-700">Solo consulta en sala</span><span className="mt-0.5 block text-xs text-slate-500">{CONFIG_TIPOS[form.tipo].soloConsulta === "forzada" ? "Este tipo de material debe permanecer en sala por reglamento." : "Actívalo si este material no puede salir de la sala."}</span></span>
             </label>
             {errorFormulario && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{errorFormulario}</p>}
             <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">

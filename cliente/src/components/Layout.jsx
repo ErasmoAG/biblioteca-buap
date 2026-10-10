@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { BookOpen, Users, ArrowLeftRight, RotateCcw, LogOut, Clock } from "lucide-react";
+import {
+  BookOpen,
+  Users,
+  ArrowLeftRight,
+  RotateCcw,
+  LogOut,
+  Clock,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const enlaces = [
@@ -37,6 +46,7 @@ function Reloj() {
 export default function Layout() {
   const { usuario, cerrarSesion } = useAuth();
   const navigate = useNavigate();
+  const [contraido, setContraido] = useState(false);
 
   function salir() {
     cerrarSesion();
@@ -45,15 +55,36 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen">
-      {/* Barra lateral */}
-      <aside className="sticky top-0 flex h-screen w-56 shrink-0 flex-col bg-buap-navy text-white">
-        <div className="border-b border-white/10 px-5 py-5">
-          <p className="text-xl font-extrabold tracking-tight">BUAP</p>
-          <p className="text-xs leading-tight text-white/70">
-            Sistema
-            <br />
-            Bibliotecario
-          </p>
+      <aside
+        className={`sticky top-0 flex h-screen shrink-0 flex-col bg-buap-navy text-white transition-[width] duration-200 ${
+          contraido ? "w-20" : "w-56"
+        }`}
+      >
+        <div
+          className={`flex items-center border-b border-white/10 py-5 ${
+            contraido ? "justify-center px-2" : "justify-between px-5"
+          }`}
+        >
+          {!contraido && (
+            <div>
+              <p className="text-xl font-extrabold tracking-tight">BUAP</p>
+              <p className="text-xs leading-tight text-white/70">
+                Sistema
+                <br />
+                Bibliotecario
+              </p>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setContraido((actual) => !actual)}
+            aria-label={contraido ? "Expandir menú lateral" : "Contraer menú lateral"}
+            aria-pressed={contraido}
+            title={contraido ? "Expandir menú" : "Contraer menú"}
+            className="rounded-lg p-2 text-white/80 transition-colors hover:bg-white/10"
+          >
+            {contraido ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+          </button>
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
@@ -61,30 +92,35 @@ export default function Layout() {
             <NavLink
               key={to}
               to={to}
+              title={contraido ? texto : undefined}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
+                  contraido ? "justify-center px-0" : ""
+                } ${
                   isActive
                     ? "bg-buap-cyan text-buap-navy-dark"
                     : "text-white/85 hover:bg-white/10"
                 }`
               }
             >
-              <Icono size={18} />
-              {texto}
+              <Icono size={18} className="shrink-0" />
+              {!contraido && texto}
             </NavLink>
           ))}
         </nav>
 
         <button
           onClick={salir}
-          className="m-3 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-white/85 transition-colors hover:bg-white/10"
+          title={contraido ? "Cerrar sesión" : undefined}
+          className={`m-3 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-white/85 transition-colors hover:bg-white/10 ${
+            contraido ? "justify-center px-0" : ""
+          }`}
         >
-          <LogOut size={18} />
-          Cerrar sesión
+          <LogOut size={18} className="shrink-0" />
+          {!contraido && "Cerrar sesión"}
         </button>
       </aside>
 
-      {/* Zona principal */}
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-6">
           <Reloj />

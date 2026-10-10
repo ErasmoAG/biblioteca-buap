@@ -12,8 +12,37 @@ function responderError(res, error) {
   if (error.code === "23503") {
     return res.status(409).json({ error: "No se puede eliminar este material porque tiene préstamos relacionados." });
   }
-  if (error.code === "23514" || error.code === "23502" || error.code === "22P02") {
-    return res.status(400).json({ error: "Los datos del material no cumplen con el formato esperado." });
+  if (error.code === "23505") {
+    const detalle = `${error.constraint || ""} ${error.detail || ""}`.toLowerCase();
+    if (detalle.includes("numero_serie")) {
+      return res.status(409).json({ error: "Ya existe un equipo con ese número de serie" });
+    }
+    return res.status(409).json({ error: "Ya existe un material con esos datos únicos." });
+  }
+  if (error.code === "23514") {
+    const regla = `${error.constraint || ""} ${error.detail || ""} ${error.message || ""}`.toLowerCase();
+    if (regla.includes("solo_consulta") || regla.includes("consulta")) {
+      return res.status(400).json({ error: "Las tesis, revistas y materiales especiales deben ser solo para consulta." });
+    }
+    if (regla.includes("ejemplar") || regla.includes("ipad") || regla.includes("equipo_computo")) {
+      return res.status(400).json({ error: "Los iPads y equipos de cómputo deben tener exactamente un ejemplar." });
+    }
+    if (regla.includes("grado_academico")) {
+      return res.status(400).json({ error: "El grado académico de la tesis debe ser licenciatura, maestria o doctorado." });
+    }
+    if (regla.includes("anio")) {
+      return res.status(400).json({ error: "El año debe estar entre 1400 y 2100." });
+    }
+    if (regla.includes("dias_prestamo")) {
+      return res.status(400).json({ error: "Los días de préstamo deben ser un entero mayor que cero." });
+    }
+    if (regla.includes("tipo")) {
+      return res.status(400).json({ error: "El tipo de material no está permitido por la base de datos." });
+    }
+    return res.status(400).json({ error: "El material no cumple una regla de la base de datos. Revisa el tipo y sus ejemplares." });
+  }
+  if (error.code === "23502" || error.code === "22P02" || error.code === "22001" || error.code === "22003") {
+    return res.status(400).json({ error: "Uno de los campos está vacío o excede el formato permitido." });
   }
   console.error("Error en materiales:", error);
   return res.status(500).json({ error: "Ocurrió un error al procesar el catálogo." });
