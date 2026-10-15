@@ -69,7 +69,9 @@ export async function listarPrestamos({ busqueda, estado, limit, offset }) {
       OR m.autor ILIKE $${valores.length}
       OR m.signatura ILIKE $${valores.length})`);
   }
-  if (estado === "activos") {
+  if (estado === "pendientes") {
+    filtros.push("p.fecha_devolucion IS NULL AND p.estado <> 'devuelto'");
+  } else if (estado === "activos") {
     filtros.push("p.fecha_devolucion IS NULL AND p.estado <> 'devuelto' AND p.fecha_vencimiento >= CURRENT_DATE");
   } else if (estado === "vencidos") {
     filtros.push("p.fecha_devolucion IS NULL AND p.estado <> 'devuelto' AND p.fecha_vencimiento < CURRENT_DATE");
@@ -103,6 +105,48 @@ export async function listarPrestamos({ busqueda, estado, limit, offset }) {
     pageValues
   );
   return { prestamos: result.rows, total: totalResult.rows[0].total };
+}
+
+export async function listarMultas({ busqueda, estado, limit, offset }) {
+  const filtros = [];
+  const valores = [];
+
+  if (busqueda) {
+    valores.push(`%${busqueda}%`);
+    filtros.push(`(u.nombre ILIKE $${valores.length}
+      OR u.matricula_o_num_trabajador ILIKE $${valores.length}
+      OR m.titulo ILIKE $${valores.length}
+      OR m.signatura ILIKE $${valores.length})`);
+  }
+  if (estado === "pendientes") filtros.push("mu.pagada IS FALSE");
+  if (estado === "pagadas") filtros.push("mu.pagada IS TRUE");
+
+  const where = filtros.length ? `WHERE ${filtros.join(" AND ")}` : "";
+  const joins = `
+    FROM multas mu
+    JOIN prestamos p ON p.id = mu.id_prestamo
+    JOIN usuarios u ON u.id = p.id_usuario
+    JOIN materiales m ON m.id = p.id_material`;
+
+  const totalResult = await pool.query(
+    `SELECT COUNT(*)::int AS total ${joins} ${where}`,
+    valores
+  );
+  const pageValues = [...valores, limit, offset];
+  const result = await pool.query(
+    `SELECT mu.id, mu.id_prestamo, mu.dias_atraso, mu.monto, mu.pagada,
+            p.fecha_prestamo, p.fecha_vencimiento, p.fecha_devolucion,
+            u.id AS id_usuario, u.nombre AS usuario_nombre,
+            u.matricula_o_num_trabajador,
+            m.id AS id_material, m.tipo AS material_tipo,
+            m.titulo AS material_titulo, m.signatura AS material_signatura
+       ${joins}
+       ${where}
+      ORDER BY mu.pagada ASC, p.fecha_devolucion DESC NULLS LAST, mu.id DESC
+      LIMIT $${pageValues.length - 1} OFFSET $${pageValues.length}`,
+    pageValues
+  );
+  return { multas: result.rows, total: totalResult.rows[0].total };
 }
 
 export async function listarPrestatariosParaPrestamo(busqueda) {
@@ -216,6 +260,114 @@ export async function bloquearPrestamo(client, id) {
     `SELECT id, id_usuario, id_material, fecha_prestamo, fecha_vencimiento,
             renovaciones_usadas, estado, fecha_devolucion
        FROM prestamos WHERE id = $1 FOR UPDATE`,
+    [id]
+  );
+  return result.rows[0] || null;
+}
+
+export async function bloquearMaterialParaDevolucion(client, id) {
+  const result = await client.query(
+    `SELECT id, titulo, ejemplares_totales, ejemplares_disponibles
+       FROM materiales WHERE id = $1 FOR UPDATE`,
+    [id]
+  );
+  return result.rows[0] || null;
+}
+
+export async function devolverPrestamoEnTransaccion(client, id, material, tarifaDiaria) {
+  const actualizado = await client.query(
+    `UPDATE prestamos
+        SET fecha_devolucion = CURRENT_DATE,
+            estado = 'devuelto'
+      WHERE id = $1
+        AND fecha_devolucion IS NULL
+        AND estado <> 'devuelto'
+      RETURNING id, id_usuario, id_material, fecha_prestamo,
+                fecha_vencimiento, fecha_devolucion,
+                GREATEST(CURRENT_DATE - fecha_vencimiento, 0)::int AS dias_atraso`,
+    [id]
+  );
+  const prestamoActualizado = actualizado.rows[0];
+  if (!prestamoActualizado) {
+    throw errorHttp(409, "El préstamo ya fue devuelto o cambió mientras se procesaba.");
+  }
+
+  // Recalcular desde los préstamos abiertos mantiene el mismo criterio que RF1
+  // al editar materiales y evita que la disponibilidad supere el total.
+  const activosResult = await client.query(
+    `SELECT COUNT(*)::int AS activos
+       FROM prestamos
+      WHERE id_material = $1
+        AND fecha_devolucion IS NULL
+        AND estado <> 'devuelto'`,
+    [material.id]
+  );
+  const disponibles = Number(material.ejemplares_totales) - Number(activosResult.rows[0].activos);
+  if (disponibles < 0) {
+    throw errorHttp(409, "El total de ejemplares es menor que los préstamos abiertos; revisa el inventario antes de registrar la devolución.");
+  }
+
+  const materialActualizado = await client.query(
+    `UPDATE materiales
+        SET ejemplares_disponibles = $2
+      WHERE id = $1
+      RETURNING ejemplares_disponibles`,
+    [material.id, disponibles]
+  );
+  if (!materialActualizado.rows[0]) {
+    throw errorHttp(409, "No se pudo actualizar la disponibilidad del material.");
+  }
+
+  let multa = null;
+  if (prestamoActualizado.dias_atraso > 0) {
+    const multaResult = await client.query(
+      `INSERT INTO multas (id_prestamo, dias_atraso, monto, pagada)
+       VALUES ($1, $2, ROUND($2::numeric * $3::numeric, 2), FALSE)
+       ON CONFLICT (id_prestamo) DO UPDATE
+         SET dias_atraso = EXCLUDED.dias_atraso,
+             pagada = CASE
+               WHEN multas.monto = EXCLUDED.monto THEN multas.pagada
+               ELSE FALSE
+             END,
+             monto = EXCLUDED.monto
+       RETURNING id, id_prestamo, dias_atraso, monto, pagada`,
+      [id, prestamoActualizado.dias_atraso, tarifaDiaria]
+    );
+    multa = multaResult.rows[0];
+  }
+
+  const prestamo = await obtenerPrestamoPorIdEnTransaccion(client, id);
+  return {
+    prestamo: { ...prestamo, dias_atraso: prestamoActualizado.dias_atraso },
+    multa,
+    ejemplares_disponibles: materialActualizado.rows[0].ejemplares_disponibles,
+  };
+}
+
+export async function obtenerMultaBloqueada(client, id) {
+  const result = await client.query(
+    `SELECT id, id_prestamo, dias_atraso, monto, pagada
+       FROM multas WHERE id = $1 FOR UPDATE`,
+    [id]
+  );
+  return result.rows[0] || null;
+}
+
+export async function marcarMultaPagadaEnTransaccion(client, id) {
+  await client.query(
+    `UPDATE multas SET pagada = TRUE WHERE id = $1 AND pagada IS FALSE`,
+    [id]
+  );
+  const result = await client.query(
+    `SELECT mu.id, mu.id_prestamo, mu.dias_atraso, mu.monto, mu.pagada,
+            p.fecha_prestamo, p.fecha_vencimiento, p.fecha_devolucion,
+            u.nombre AS usuario_nombre, u.matricula_o_num_trabajador,
+            m.titulo AS material_titulo
+       FROM multas mu
+       JOIN prestamos p ON p.id = mu.id_prestamo
+       JOIN usuarios u ON u.id = p.id_usuario
+       JOIN materiales m ON m.id = p.id_material
+      WHERE mu.id = $1`,
     [id]
   );
   return result.rows[0] || null;

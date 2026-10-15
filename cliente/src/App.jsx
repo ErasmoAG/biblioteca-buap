@@ -2,10 +2,10 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Login from "./pages/Login.jsx";
 import Layout from "./components/Layout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import EnConstruccion from "./pages/EnConstruccion.jsx";
 import CatalogoMateriales from "./pages/CatalogoMateriales.jsx";
 import Usuarios from "./pages/Usuarios.jsx";
 import Prestamos from "./pages/Prestamos.jsx";
+import Devoluciones from "./pages/Devoluciones.jsx";
 
 export default function App() {
   return (
@@ -29,12 +29,7 @@ export default function App() {
           />
           <Route
             path="/devoluciones"
-            element={
-              <EnConstruccion
-                titulo="Devoluciones"
-                descripcion="Recepción de material y cálculo de multas por atraso."
-              />
-            }
+            element={<Devoluciones />}
           />
         </Route>
       </Route>

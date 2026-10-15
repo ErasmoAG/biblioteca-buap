@@ -1,13 +1,19 @@
 import {
   obtenerOpcionesMateriales,
   obtenerOpcionesPrestatarios,
+  obtenerMultas,
   obtenerPrestamos,
+  registrarDevolucion,
+  registrarPagoMulta,
   registrarPrestamo,
   renovarPrestamo,
 } from "../services/prestamosService.js";
 
 function responderError(res, error) {
   if (error.status) return res.status(error.status).json({ error: error.message });
+  if (error.code === "23505") {
+    return res.status(409).json({ error: "Ya existe una multa para este préstamo; revisa el historial antes de volver a procesarlo." });
+  }
   if (error.code === "23503") {
     return res.status(409).json({ error: "El usuario o material ya no existe; actualiza la pantalla e inténtalo de nuevo." });
   }
@@ -21,6 +27,14 @@ function responderError(res, error) {
 export async function listar(req, res) {
   try {
     res.json(await obtenerPrestamos(req.query));
+  } catch (error) {
+    responderError(res, error);
+  }
+}
+
+export async function listarMultas(req, res) {
+  try {
+    res.json(await obtenerMultas(req.query));
   } catch (error) {
     responderError(res, error);
   }
@@ -53,6 +67,22 @@ export async function crear(req, res) {
 export async function renovar(req, res) {
   try {
     res.json({ prestamo: await renovarPrestamo(req.params.id, req.body) });
+  } catch (error) {
+    responderError(res, error);
+  }
+}
+
+export async function devolver(req, res) {
+  try {
+    res.json(await registrarDevolucion(req.params.id));
+  } catch (error) {
+    responderError(res, error);
+  }
+}
+
+export async function pagarMulta(req, res) {
+  try {
+    res.json(await registrarPagoMulta(req.params.id));
   } catch (error) {
     responderError(res, error);
   }

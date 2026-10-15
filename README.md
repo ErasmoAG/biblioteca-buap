@@ -93,3 +93,16 @@ permiten hasta dos veces antes de la fecha de vencimiento.
 Antes de usar RF3, ejecuta `servidor/migrations/20261015_rf3_prestamos.sql` en
 el SQL Editor de Supabase. La migración agrega `prestamos.fecha_devolucion` si
 falta e índices para consultas de préstamos activos y multas pendientes.
+
+## RF4: devoluciones y multas
+
+La pantalla protegida `/devoluciones` recibe materiales pendientes y permite
+consultar el historial de multas. El servidor fecha la devolución con
+`CURRENT_DATE`, actualiza el préstamo y recalcula la disponibilidad desde los
+préstamos abiertos dentro de una transacción. Si el material se devuelve tarde,
+registra una sola multa por préstamo a la tarifa definida por el proyecto
+($1.30 MXN por día natural); el pago se marca manualmente después de recibirlo
+en biblioteca. La base de datos debe tener `prestamos.fecha_devolucion` y el
+índice único `multas_una_por_prestamo_rf4_idx`. Antes de usar RF4, ejecuta
+`servidor/migrations/20261015_rf4_devoluciones.sql` en el SQL Editor de Supabase;
+el script es idempotente y valida que no existan multas duplicadas.

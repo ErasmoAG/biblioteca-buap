@@ -1,11 +1,16 @@
 import {
   bloquearPrestatario,
+  bloquearMaterialParaDevolucion,
   bloquearPrestamo,
   crearPrestamoEnTransaccion,
+  devolverPrestamoEnTransaccion,
   enTransaccion,
+  listarMultas,
   listarMaterialesParaPrestamo,
   listarPrestatariosParaPrestamo,
   listarPrestamos,
+  marcarMultaPagadaEnTransaccion,
+  obtenerMultaBloqueada,
   obtenerEstadoPrestatario,
   obtenerMaterialPrestamo,
   obtenerUsuarioDePrestamo,
@@ -15,6 +20,7 @@ import {
 export const MAX_PRESTAMOS_ACTIVOS = 15;
 export const MAX_RENOVACIONES = 2;
 export const DIAS_POR_RENOVACION = 5;
+export const TARIFA_DIARIA_MULTA = 1.3;
 
 const DIAS_POR_GRUPO = {
   prepa_lic_tecnica: 15,
@@ -84,13 +90,75 @@ export async function obtenerPrestamos(query) {
     throw errorHttp(400, `La paginación debe ser válida (limit de 1 a ${MAX_LIMIT} y offset igual o mayor a 0).`);
   }
 
-  const estados = ["activos", "vencidos", "devueltos"];
+  const estados = ["pendientes", "activos", "vencidos", "devueltos"];
   const estado = typeof query.estado === "string" ? query.estado.trim() : "";
   if (estado && !estados.includes(estado)) {
     throw errorHttp(400, "El filtro de estado no es válido.");
   }
   const busqueda = typeof query.search === "string" ? query.search.trim().slice(0, 200) : "";
-  return { ...(await listarPrestamos({ busqueda, estado, limit, offset })), limit, offset };
+  const resultado = await listarPrestamos({ busqueda, estado, limit, offset });
+  return {
+    ...resultado,
+    prestamos: resultado.prestamos.map((prestamo) => ({
+      ...prestamo,
+      multa_estimada: Number((Number(prestamo.dias_atraso || 0) * TARIFA_DIARIA_MULTA).toFixed(2)),
+    })),
+    limit,
+    offset,
+  };
+}
+
+export async function obtenerMultas(query) {
+  const limit = numeroConsulta(query.limit, 10, 1, MAX_LIMIT);
+  const offset = numeroConsulta(query.offset, 0, 0);
+  if (limit === null || offset === null) {
+    throw errorHttp(400, `La paginación debe ser válida (limit de 1 a ${MAX_LIMIT} y offset igual o mayor a 0).`);
+  }
+
+  const estados = ["pendientes", "pagadas"];
+  const estado = typeof query.estado === "string" ? query.estado.trim() : "";
+  if (estado && !estados.includes(estado)) {
+    throw errorHttp(400, "El filtro de estado de las multas no es válido.");
+  }
+  const busqueda = typeof query.search === "string" ? query.search.trim().slice(0, 200) : "";
+  return { ...(await listarMultas({ busqueda, estado, limit, offset })), limit, offset };
+}
+
+export async function registrarDevolucion(id) {
+  const idPrestamo = validarId(id, "préstamo");
+
+  return enTransaccion(async (client) => {
+    const prestamo = await bloquearPrestamo(client, idPrestamo);
+    if (!prestamo) throw errorHttp(404, "No se encontró el préstamo.");
+    if (prestamo.fecha_devolucion || prestamo.estado === "devuelto") {
+      throw errorHttp(409, "Este préstamo ya fue devuelto.");
+    }
+
+    const material = await bloquearMaterialParaDevolucion(client, prestamo.id_material);
+    if (!material) throw errorHttp(409, "No se encontró el material asociado al préstamo.");
+
+    return devolverPrestamoEnTransaccion(
+      client,
+      idPrestamo,
+      material,
+      TARIFA_DIARIA_MULTA
+    );
+  });
+}
+
+export async function registrarPagoMulta(id) {
+  const idMulta = validarId(id, "multa");
+
+  return enTransaccion(async (client) => {
+    const multa = await obtenerMultaBloqueada(client, idMulta);
+    if (!multa) throw errorHttp(404, "No se encontró la multa.");
+
+    const yaEstabaPagada = multa.pagada === true;
+    const multaActualizada = await marcarMultaPagadaEnTransaccion(client, idMulta);
+    if (!multaActualizada) throw errorHttp(404, "No se encontró la multa.");
+
+    return { multa: multaActualizada, ya_estaba_pagada: yaEstabaPagada };
+  });
 }
 
 export async function obtenerOpcionesPrestatarios(query) {
