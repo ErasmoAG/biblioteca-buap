@@ -74,3 +74,22 @@ biblioteca-buap/
   consulta en sala), y administrativo/bibliotecario (gestiona el sistema).
 - Máximo 15 artículos prestados por usuario, hasta 2 renovaciones de 5 días.
 - Multa de $1.30 MXN por día de atraso.
+- Solo se presta a domicilio a prestatarios internos con perfil clasificado,
+  credencial vigente, registro bibliotecario actualizado en el periodo escolar
+  vigente, sin préstamos vencidos y sin multas pendientes.
+- Los materiales marcados `solo_consulta` no se prestan a domicilio. Los iPads
+  y equipos de cómputo toman su plazo de `materiales.dias_prestamo`.
+- Para renovar, el personal confirma que no existe un apartado pendiente. La
+  aplicación aún no administra apartados.
+
+## RF3: préstamos y renovaciones
+
+La pantalla protegida `/prestamos` usa la API del servidor. El registro acepta
+solo los identificadores de prestatario y material; el servidor calcula las
+fechas, valida la elegibilidad, y descuenta disponibilidad dentro de una
+transacción. Las renovaciones agregan cinco días al vencimiento vigente y se
+permiten hasta dos veces antes de la fecha de vencimiento.
+
+Antes de usar RF3, ejecuta `servidor/migrations/20261015_rf3_prestamos.sql` en
+el SQL Editor de Supabase. La migración agrega `prestamos.fecha_devolucion` si
+falta e índices para consultas de préstamos activos y multas pendientes.

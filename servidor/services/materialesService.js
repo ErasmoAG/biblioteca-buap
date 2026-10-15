@@ -124,20 +124,13 @@ function normalizarMaterial(entrada, anterior = null) {
   const ejemplares_totales = esEquipo
     ? 1
     : leerEntero(entrada, "ejemplares_totales", { obligatorio: true, minimo: 1, maximo: 2147483647 });
-  let ejemplares_disponibles = esEquipo
-    ? 1
+  // La capa de datos recalcula la disponibilidad dentro de una transacción y
+  // con el material bloqueado, usando los préstamos activos como fuente real.
+  // Aquí solo se conserva un valor para altas; en ediciones no se confía en el
+  // número que venga del cliente ni en una lectura anterior posiblemente vieja.
+  const ejemplares_disponibles = anterior
+    ? anterior.ejemplares_disponibles
     : ejemplares_totales;
-
-  if (!esEquipo && anterior) {
-    const diferencia = ejemplares_totales - anterior.ejemplares_totales;
-    ejemplares_disponibles = anterior.ejemplares_disponibles + diferencia;
-    if (ejemplares_disponibles < 0) {
-      throw errorHttp(400, "No puedes reducir el total por debajo de los ejemplares que están prestados.");
-    }
-    if (ejemplares_disponibles > ejemplares_totales) {
-      throw errorHttp(400, "Los ejemplares disponibles no pueden superar el total.");
-    }
-  }
 
   const solo_consulta = TIPOS_SOLO_CONSULTA.has(tipo)
     ? true

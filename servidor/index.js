@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.js";
 import materialesRoutes from "./routes/materiales.js";
+import usuariosRoutes from "./routes/usuarios.js";
+import prestamosRoutes from "./routes/prestamos.js";
 
 dotenv.config();
 
@@ -16,6 +18,8 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/materiales", materialesRoutes);
+app.use("/api/usuarios", usuariosRoutes);
+app.use("/api/prestamos", prestamosRoutes);
 
 const PUERTO = 3000;
 app.listen(PUERTO, () => {

@@ -4,6 +4,8 @@ import Layout from "./components/Layout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import EnConstruccion from "./pages/EnConstruccion.jsx";
 import CatalogoMateriales from "./pages/CatalogoMateriales.jsx";
+import Usuarios from "./pages/Usuarios.jsx";
+import Prestamos from "./pages/Prestamos.jsx";
 
 export default function App() {
   return (
@@ -19,21 +21,11 @@ export default function App() {
           />
           <Route
             path="/usuarios"
-            element={
-              <EnConstruccion
-                titulo="Usuarios"
-                descripcion="Registro y consulta de las personas que piden material prestado."
-              />
-            }
+            element={<Usuarios />}
           />
           <Route
             path="/prestamos"
-            element={
-              <EnConstruccion
-                titulo="Préstamos"
-                descripcion="Registro de préstamos y renovaciones."
-              />
-            }
+            element={<Prestamos />}
           />
           <Route
             path="/devoluciones"

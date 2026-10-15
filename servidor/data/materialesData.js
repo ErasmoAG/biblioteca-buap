@@ -95,36 +95,83 @@ export async function crearMaterial(material) {
 }
 
 export async function actualizarMaterial(id, material) {
-  const result = await pool.query(
-    `UPDATE materiales
-        SET tipo = $1, titulo = $2, autor = $3, categoria = $4,
-            signatura = $5, editorial = $6, anio = $7, isbn_issn = $8,
-            grado_academico = $9, marca = $10, modelo = $11, numero_serie = $12,
-            dias_prestamo = $13, ejemplares_totales = $14,
-            ejemplares_disponibles = $15, solo_consulta = $16
-      WHERE id = $17
-      RETURNING ${COLUMNAS}`,
-    [
-      material.tipo,
-      material.titulo,
-      material.autor,
-      material.categoria,
-      material.signatura,
-      material.editorial,
-      material.anio,
-      material.isbn_issn,
-      material.grado_academico,
-      material.marca,
-      material.modelo,
-      material.numero_serie,
-      material.dias_prestamo,
-      material.ejemplares_totales,
-      material.ejemplares_disponibles,
-      material.solo_consulta,
-      id,
-    ]
-  );
-  return result.rows[0] || null;
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const actualResult = await client.query(
+      `SELECT id, tipo, solo_consulta, ejemplares_totales, ejemplares_disponibles
+         FROM materiales WHERE id = $1 FOR UPDATE`,
+      [id]
+    );
+    const actual = actualResult.rows[0];
+    if (!actual) {
+      await client.query("COMMIT");
+      return null;
+    }
+
+    const prestamosResult = await client.query(
+      `SELECT COUNT(*)::int AS activos
+         FROM prestamos
+        WHERE id_material = $1
+          AND fecha_devolucion IS NULL
+          AND estado <> 'devuelto'`,
+      [id]
+    );
+    const prestamosActivos = prestamosResult.rows[0].activos;
+    if (prestamosActivos > 0 && actual.tipo !== material.tipo) {
+      const error = new Error("No puedes cambiar el tipo mientras el material tenga préstamos activos.");
+      error.status = 409;
+      throw error;
+    }
+    if (prestamosActivos > 0 && !actual.solo_consulta && material.solo_consulta) {
+      const error = new Error("No puedes marcar como solo consulta un material con préstamos activos.");
+      error.status = 409;
+      throw error;
+    }
+    if (material.ejemplares_totales < prestamosActivos) {
+      const error = new Error("El total no puede ser menor que los ejemplares actualmente prestados.");
+      error.status = 400;
+      throw error;
+    }
+
+    const disponibles = material.ejemplares_totales - prestamosActivos;
+    const result = await client.query(
+      `UPDATE materiales
+          SET tipo = $1, titulo = $2, autor = $3, categoria = $4,
+              signatura = $5, editorial = $6, anio = $7, isbn_issn = $8,
+              grado_academico = $9, marca = $10, modelo = $11, numero_serie = $12,
+              dias_prestamo = $13, ejemplares_totales = $14,
+              ejemplares_disponibles = $15, solo_consulta = $16
+        WHERE id = $17
+        RETURNING ${COLUMNAS}`,
+      [
+        material.tipo,
+        material.titulo,
+        material.autor,
+        material.categoria,
+        material.signatura,
+        material.editorial,
+        material.anio,
+        material.isbn_issn,
+        material.grado_academico,
+        material.marca,
+        material.modelo,
+        material.numero_serie,
+        material.dias_prestamo,
+        material.ejemplares_totales,
+        disponibles,
+        material.solo_consulta,
+        id,
+      ]
+    );
+    await client.query("COMMIT");
+    return result.rows[0] || null;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function eliminarMaterial(id) {
