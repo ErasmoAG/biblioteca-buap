@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle,
   ArrowLeftRight,
   BookOpen,
   CalendarClock,
@@ -144,7 +143,6 @@ export default function Prestamos() {
   const [recarga, setRecarga] = useState(0);
   const [aviso, setAviso] = useState(null);
   const [modalRenovacion, setModalRenovacion] = useState(null);
-  const [confirmoSinApartado, setConfirmoSinApartado] = useState(false);
   const [renovando, setRenovando] = useState(false);
 
   const paginas = Math.max(1, Math.ceil(total / TAMANO_PAGINA));
@@ -259,16 +257,14 @@ export default function Prestamos() {
   }
 
   async function renovar() {
-    if (!modalRenovacion || !confirmoSinApartado) return;
+    if (!modalRenovacion) return;
     setRenovando(true);
     try {
       const datos = await api(`/prestamos/${modalRenovacion.id}/renovar`, {
         method: "POST",
-        body: { confirmo_sin_apartado: true },
       });
       setAviso({ tipo: "exito", mensaje: `Préstamo renovado por ${datos.prestamo.dias_extension} días. Nueva fecha: ${fechaLegible(datos.prestamo.fecha_vencimiento)}.` });
       setModalRenovacion(null);
-      setConfirmoSinApartado(false);
       setRecarga((actual) => actual + 1);
     } catch (err) {
       setAviso({ tipo: "error", mensaje: err.message });
@@ -279,7 +275,6 @@ export default function Prestamos() {
 
   function abrirRenovacion(prestamo) {
     setModalRenovacion(prestamo);
-    setConfirmoSinApartado(false);
   }
 
   return (
@@ -506,17 +501,9 @@ export default function Prestamos() {
               <CalendarClock size={19} className="mt-0.5 shrink-0 text-buap-navy" />
               <p>“{modalRenovacion.material_titulo}” de {modalRenovacion.usuario_nombre}. Se añadirán {DIAS_POR_RENOVACION} días a la fecha actual de vencimiento ({fechaLegible(modalRenovacion.fecha_vencimiento)}). Esta será la renovación {Number(modalRenovacion.renovaciones_usadas) + 1} de {MAX_RENOVACIONES}.</p>
             </div>
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-900">
-              <p className="flex items-center gap-2 font-semibold"><AlertTriangle size={17} /> Verificación de apartado</p>
-              <p className="mt-1.5">El proyecto aún no administra apartados. Confirma con el registro de la biblioteca que ninguna otra persona haya apartado este material.</p>
-              <label className="mt-3 flex items-start gap-2.5">
-                <input type="checkbox" checked={confirmoSinApartado} onChange={(event) => setConfirmoSinApartado(event.target.checked)} className="mt-0.5 size-4 accent-[#003b5c]" />
-                <span>Confirmo que no existe un apartado pendiente para este material.</span>
-              </label>
-            </div>
             <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
               <button type="button" disabled={renovando} onClick={() => setModalRenovacion(null)} className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">Cancelar</button>
-              <button type="button" disabled={renovando || !confirmoSinApartado} onClick={renovar} className="inline-flex items-center gap-2 rounded-lg bg-buap-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-buap-navy-dark disabled:cursor-not-allowed disabled:opacity-50">{renovando && <LoaderCircle size={16} className="animate-spin" />}{renovando ? "Renovando…" : "Confirmar renovación"}</button>
+              <button type="button" disabled={renovando} onClick={renovar} className="inline-flex items-center gap-2 rounded-lg bg-buap-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-buap-navy-dark disabled:cursor-not-allowed disabled:opacity-50">{renovando && <LoaderCircle size={16} className="animate-spin" />}{renovando ? "Renovando…" : "Confirmar renovación"}</button>
             </div>
           </div>
         </Modal>

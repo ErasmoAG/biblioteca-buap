@@ -66,7 +66,7 @@ export async function crear(req, res) {
 
 export async function renovar(req, res) {
   try {
-    res.json({ prestamo: await renovarPrestamo(req.params.id, req.body) });
+    res.json({ prestamo: await renovarPrestamo(req.params.id) });
   } catch (error) {
     responderError(res, error);
   }

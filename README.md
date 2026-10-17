@@ -5,6 +5,10 @@ préstamo de materiales de una biblioteca, basado en las reglas reales de la
 Dirección General de Bibliotecas de la BUAP, usando una **arquitectura en
 capas (N-Tier)**.
 
+La interfaz es de uso interno del bibliotecario. Estudiantes, docentes y demás
+prestatarios se registran como personas sujetas a las reglas de préstamo, pero
+no inician sesión ni operan el sistema.
+
 ## Arquitectura
 
 | Capa | Carpeta | Tecnología | Qué hace |
@@ -79,8 +83,6 @@ biblioteca-buap/
   vigente, sin préstamos vencidos y sin multas pendientes.
 - Los materiales marcados `solo_consulta` no se prestan a domicilio. Los iPads
   y equipos de cómputo toman su plazo de `materiales.dias_prestamo`.
-- Para renovar, el personal confirma que no existe un apartado pendiente. La
-  aplicación aún no administra apartados.
 
 ## RF3: préstamos y renovaciones
 

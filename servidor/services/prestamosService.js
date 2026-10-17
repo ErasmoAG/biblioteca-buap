@@ -207,11 +207,8 @@ export async function registrarPrestamo(entrada) {
   });
 }
 
-export async function renovarPrestamo(id, entrada) {
+export async function renovarPrestamo(id) {
   const idPrestamo = validarId(id, "préstamo");
-  if (!entrada || entrada.confirmo_sin_apartado !== true) {
-    throw errorHttp(400, "Confirma que no existe un apartado pendiente antes de renovar.");
-  }
 
   const primerDato = await obtenerUsuarioDePrestamo(idPrestamo);
   if (!primerDato) throw errorHttp(404, "No se encontró el préstamo.");
