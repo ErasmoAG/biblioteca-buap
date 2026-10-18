@@ -10,7 +10,7 @@ import { verificarToken } from "../middleware/verificarToken.js";
 
 const router = Router();
 
-// Solo permite el alta pública de la cuenta administrativa inicial.
+// El alta pública depende del entorno y de REGISTRO_BIBLIOTECARIOS_HABILITADO.
 router.get("/registro-disponible", async (_req, res) => {
   try {
     res.json(await obtenerEstadoRegistro());

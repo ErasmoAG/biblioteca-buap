@@ -26,13 +26,28 @@ export function AuthProvider({ children }) {
     setUsuario(datos.usuario);
   }
 
+  async function registrarBibliotecario(nombre, email, password) {
+    const datos = await api("/auth/registro", {
+      method: "POST",
+      body: { nombre, email, password },
+    });
+    localStorage.setItem("token", datos.token);
+    setUsuario(datos.usuario);
+  }
+
   function cerrarSesion() {
     localStorage.removeItem("token");
     setUsuario(null);
   }
 
   return (
-    <AuthContext.Provider value={{ usuario, cargando, iniciarSesion, cerrarSesion }}>
+    <AuthContext.Provider value={{
+      usuario,
+      cargando,
+      iniciarSesion,
+      registrarBibliotecario,
+      cerrarSesion,
+    }}>
       {children}
     </AuthContext.Provider>
   );
