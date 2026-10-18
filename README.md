@@ -125,8 +125,10 @@ npm ci
 ```
 
 El cliente local espera que la API esté disponible en
-`http://localhost:3000/api`, según `cliente/src/api.js`. No requiere un archivo
-`.env` para ejecutarse en local.
+`http://localhost:3000/api`, según `cliente/src/api.js`. El cliente no necesita
+un `.env`; el backend sí necesita `servidor/.env` incluso cuando ambos procesos
+se ejecutan en tu computadora, porque allí se configuran la conexión a Supabase
+y el secreto JWT.
 
 ## Ejecutar el sistema
 
@@ -136,10 +138,11 @@ Mantén abiertas **dos terminales**, una para cada proceso.
 
 ```powershell
 cd .\servidor
-node .\index.js
+node --watch index.js
 ```
 
-El servidor escucha en `http://localhost:3000`. Para confirmar que está activo,
+`--watch` reinicia el servidor cuando guardas cambios en sus archivos. El
+servidor escucha en `http://localhost:3000`. Para confirmar que está activo,
 abre esa dirección; debe responder un JSON indicando que la API funciona.
 
 **Terminal 2 — interfaz**, desde la raíz:
@@ -181,22 +184,9 @@ La persistencia usa PostgreSQL de Supabase y estas tablas relacionadas:
 - `multas`: días de atraso, monto y estado de pago asociados a un préstamo.
 
 La base conectada a `DATABASE_URL` debe contar con las tablas, columnas,
-restricciones e índices requeridos por la aplicación. El servidor **no crea ni
-migra el esquema al arrancar**. Los scripts de `servidor/migrations/` son cambios
-SQL incrementales para revisar y ejecutar manualmente en Supabase cuando sean
-necesarios; no son un inicializador completo ni se ejecutan automáticamente.
-
-El proyecto incluye scripts para cambios específicos:
-
-| Archivo | Propósito |
-|---|---|
-| `20261015_perfil_prestatario_buap.sql` | Añade perfil y fecha de actualización del registro bibliotecario. |
-| `20261015_unicidad_identificador_prestatario.sql` | Evita identificadores duplicados entre prestatarios internos. |
-| `20261015_rf3_prestamos.sql` | Añade fecha de devolución, restricciones e índices de RF3. |
-| `20261015_rf4_devoluciones.sql` | Asegura una multa por préstamo e indexa devoluciones pendientes. |
-
-Revisa el estado actual de la base antes de ejecutar cualquier script. No ejecutes
-migraciones a ciegas sobre una base que ya tiene esos cambios.
+restricciones e índices requeridos por la aplicación. El servidor no inicializa
+ni modifica el esquema al arrancar. Conecta una base de Supabase que ya tenga la
+estructura vigente del proyecto.
 
 ### Esquema para pruebas de integración
 
@@ -326,7 +316,6 @@ biblioteca-buap/
 │   ├── data/               # Consultas SQL
 │   ├── db/                 # Pool de PostgreSQL
 │   ├── middleware/         # Verificación JWT
-│   ├── migrations/         # SQL incremental para revisión manual
 │   ├── routes/             # Rutas HTTP
 │   ├── scripts/            # Utilidades administrativas
 │   ├── services/            # Casos de uso y reglas de negocio
@@ -365,8 +354,9 @@ biblioteca-buap/
 ### PostgreSQL indica que falta una columna o restricción
 
 La base no coincide con el esquema que requiere la versión actual del servidor.
-Compara su estado con la configuración Supabase del proyecto y revisa el SQL de
-`servidor/migrations/` antes de aplicar cambios.
+Compara su estructura con el esquema vigente que usa la aplicación y actualiza
+la base de forma controlada antes de volver a iniciar el servidor. El servidor
+no crea columnas automáticamente.
 
 ## Alcance de esta guía
 
