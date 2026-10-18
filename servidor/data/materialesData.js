@@ -1,5 +1,6 @@
 // Consultas SQL del catálogo de materiales.
 import { pool } from "../db/pool.js";
+import { construirFiltrosMateriales } from "./materialesFiltros.js";
 
 const COLUMNAS = `id, tipo, titulo, autor, categoria, signatura, editorial, anio,
                   isbn_issn, grado_academico, marca, modelo, numero_serie,
@@ -7,34 +8,9 @@ const COLUMNAS = `id, tipo, titulo, autor, categoria, signatura, editorial, anio
                   solo_consulta`;
 
 export async function listarMateriales({ busqueda, tipo, categoria, disponibilidad, soloConsulta, limit, offset }) {
-  const filtros = [];
-  const valores = [];
-
-  if (busqueda) {
-    valores.push(`%${busqueda}%`);
-    filtros.push(`(titulo ILIKE $${valores.length} OR autor ILIKE $${valores.length}
-      OR signatura ILIKE $${valores.length} OR marca ILIKE $${valores.length}
-      OR modelo ILIKE $${valores.length} OR numero_serie ILIKE $${valores.length})`);
-  }
-  if (tipo) {
-    valores.push(tipo);
-    filtros.push(`tipo = $${valores.length}`);
-  }
-  if (categoria) {
-    valores.push(categoria);
-    filtros.push(`categoria = $${valores.length}`);
-  }
-  if (disponibilidad === "disponibles") {
-    filtros.push("ejemplares_disponibles > 0");
-  } else if (disponibilidad === "agotados") {
-    filtros.push("ejemplares_disponibles = 0");
-  }
-  if (typeof soloConsulta === "boolean") {
-    valores.push(soloConsulta);
-    filtros.push(`solo_consulta = $${valores.length}`);
-  }
-
-  const where = filtros.length ? `WHERE ${filtros.join(" AND ")}` : "";
+  const { where, valores } = construirFiltrosMateriales({
+    busqueda, tipo, categoria, disponibilidad, soloConsulta,
+  });
   const totalResult = await pool.query(
     `SELECT COUNT(*)::int AS total FROM materiales ${where}`,
     valores

@@ -1,9 +1,36 @@
 // RUTAS: la "ventanilla" que recibe las peticiones de React y llama a la lógica.
 import { Router } from "express";
-import { iniciarSesion, obtenerUsuario } from "../services/authService.js";
+import {
+  iniciarSesion,
+  obtenerEstadoRegistro,
+  obtenerUsuario,
+  registrarBibliotecario,
+} from "../services/authService.js";
 import { verificarToken } from "../middleware/verificarToken.js";
 
 const router = Router();
+
+// Solo permite el alta pública de la cuenta administrativa inicial.
+router.get("/registro-disponible", async (_req, res) => {
+  try {
+    res.json(await obtenerEstadoRegistro());
+  } catch (error) {
+    console.error("Error al consultar el estado del registro administrativo:", error);
+    res.status(500).json({ error: "No se pudo consultar el estado del registro." });
+  }
+});
+
+router.post("/registro", async (req, res) => {
+  try {
+    res.status(201).json(await registrarBibliotecario(req.body));
+  } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error("Error al registrar al bibliotecario:", error);
+    res.status(500).json({ error: "No se pudo crear la cuenta. Intenta de nuevo." });
+  }
+});
 
 // POST /api/auth/login  ->  { email, password }  ->  { token, usuario }
 router.post("/login", async (req, res) => {

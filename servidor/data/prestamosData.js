@@ -322,7 +322,7 @@ export async function devolverPrestamoEnTransaccion(client, id, material, tarifa
   if (prestamoActualizado.dias_atraso > 0) {
     const multaResult = await client.query(
       `INSERT INTO multas (id_prestamo, dias_atraso, monto, pagada)
-       VALUES ($1, $2, ROUND($2::numeric * $3::numeric, 2), FALSE)
+       VALUES ($1::int, $2::int, ROUND(($2::int)::numeric * $3::numeric, 2), FALSE)
        ON CONFLICT (id_prestamo) DO UPDATE
          SET dias_atraso = EXCLUDED.dias_atraso,
              pagada = CASE
